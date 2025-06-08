@@ -12,6 +12,7 @@ const InterviewCard = async ({
   interviewId,
   userId,
   role,
+  
   type,
   techstack,
   createdAt,
