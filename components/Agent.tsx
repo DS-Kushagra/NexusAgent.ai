@@ -34,16 +34,14 @@ const Agent = ({
   const [messages, setMessages] = useState<SavedMessage[]>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [lastMessage, setLastMessage] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const onCallStart = () => {
       setCallStatus(CallStatus.ACTIVE);
     };
+
     const onCallEnd = () => {
-      console.log("Call ended");
       setCallStatus(CallStatus.FINISHED);
-      setError(null); // Clear any previous errors
     };
 
     const onMessage = (message: Message) => {
@@ -64,40 +62,7 @@ const Agent = ({
     };
 
     const onError = (error: Error) => {
-      console.error("VAPI Error:", error);
-
-      // Handle specific VAPI errors
-      const errorMessage = error.message || error.toString();
-
-      if (
-        errorMessage.includes("ejection") ||
-        errorMessage.includes("Meeting ended")
-      ) {
-        setError(
-          "The interview session was ended by the system. This may be due to time limits or technical issues."
-        );
-      } else if (
-        errorMessage.includes("authentication") ||
-        errorMessage.includes("unauthorized")
-      ) {
-        setError(
-          "Authentication failed. Please refresh the page and try again."
-        );
-      } else if (
-        errorMessage.includes("network") ||
-        errorMessage.includes("connection")
-      ) {
-        setError(
-          "Network connection lost. Please check your internet connection and try again."
-        );
-      } else {
-        setError(
-          "An unexpected error occurred during the interview. Please try again."
-        );
-      }
-
-      setCallStatus(CallStatus.FINISHED);
-      setIsSpeaking(false);
+      console.log("Error:", error);
     };
 
     vapi.on("call-start", onCallStart);
@@ -148,50 +113,41 @@ const Agent = ({
       }
     }
   }, [messages, callStatus, feedbackId, interviewId, router, type, userId]);
+
   const handleCall = async () => {
     setCallStatus(CallStatus.CONNECTING);
-    setError(null); // Clear any previous errors
 
-    try {
-      if (type === "generate") {
-        await vapi.start(
-          undefined,
-          undefined,
-          undefined,
-          process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!,
-          {
-            variableValues: {
-              username: userName,
-              userid: userId,
-            },
-          }
-        );
-      } else {
-        let formattedQuestions = "";
-        if (questions) {
-          formattedQuestions = questions
-            .map((question) => `- ${question}`)
-            .join("\n");
-        }
-
-        await vapi.start(interviewer, {
+    if (type === "generate") {
+      await vapi.start(
+        undefined,
+        undefined,
+        undefined,
+        process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!,
+        {
           variableValues: {
-            questions: formattedQuestions,
+            username: userName,
+            userid: userId,
           },
-        });
-      }
-    } catch (error: any) {
-      console.error("Failed to start call:", error);
-      setError(
-        "Failed to start the interview. Please check your microphone permissions and try again."
+        }
       );
-      setCallStatus(CallStatus.INACTIVE);
+    } else {
+      let formattedQuestions = "";
+      if (questions) {
+        formattedQuestions = questions
+          .map((question) => `- ${question}`)
+          .join("\n");
+      }
+
+      await vapi.start(interviewer, {
+        variableValues: {
+          questions: formattedQuestions,
+        },
+      });
     }
   };
 
   const handleDisconnect = () => {
     setCallStatus(CallStatus.FINISHED);
-    setError(null); // Clear any errors when manually disconnecting
     vapi.stop();
   };
 

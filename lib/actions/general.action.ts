@@ -95,28 +95,18 @@ export async function getLatestInterviews(
 ): Promise<Interview[] | null> {
   const { userId, limit = 20 } = params;
 
-  // First get all finalized interviews
   const interviews = await db
     .collection("interviews")
+    .orderBy("createdAt", "desc")
     .where("finalized", "==", true)
+    .where("userId", "!=", userId)
+    .limit(limit)
     .get();
 
-  // Filter out the current user's interviews and sort in the application
-  const filteredAndSortedInterviews = interviews.docs
-    .map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
-    .filter((interview: any) => interview.userId !== userId)
-    .sort((a: any, b: any) => {
-      // Sort by createdAt in descending order
-      const dateA = new Date(a.createdAt);
-      const dateB = new Date(b.createdAt);
-      return dateB.getTime() - dateA.getTime();
-    })
-    .slice(0, limit); // Apply the limit
-
-  return filteredAndSortedInterviews as Interview[];
+  return interviews.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Interview[];
 }
 
 export async function getInterviewsByUserId(
@@ -125,20 +115,11 @@ export async function getInterviewsByUserId(
   const interviews = await db
     .collection("interviews")
     .where("userId", "==", userId)
+    .orderBy("createdAt", "desc")
     .get();
 
-  // Sort the results in the application instead of in the query
-  const sortedInterviews = interviews.docs
-    .map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
-    .sort((a: any, b: any) => {
-      // Sort by createdAt in descending order
-      const dateA = new Date(a.createdAt);
-      const dateB = new Date(b.createdAt);
-      return dateB.getTime() - dateA.getTime();
-    });
-
-  return sortedInterviews as Interview[];
+  return interviews.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Interview[];
 }
