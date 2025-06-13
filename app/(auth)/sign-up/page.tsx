@@ -1,13 +1,7 @@
-import { ReactNode } from "react";
-import { redirect } from "next/navigation";
+import AuthForm from "@/components/AuthForm";
 
-import { isAuthenticated } from "@/lib/actions/auth.action";
-
-const AuthLayout = async ({ children }: { children: ReactNode }) => {
-  const isUserAuthenticated = await isAuthenticated();
-  if (isUserAuthenticated) redirect("/");
-
-  return <div className="auth-layout">{children}</div>;
+const Page = () => {
+  return <AuthForm type="sign-up" />;
 };
 
-export default AuthLayout;
+export default Page;
