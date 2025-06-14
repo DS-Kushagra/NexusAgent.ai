@@ -5,17 +5,38 @@ import { google } from "@ai-sdk/google";
 
 import { db } from "@/firebase/admin";
 import { feedbackSchema } from "@/constants";
+import { logger } from "@/lib/logger";
 
 export async function createFeedback(params: CreateFeedbackParams) {
   const { interviewId, userId, transcript, feedbackId } = params;
 
+  // Create session for logging
+  const sessionId = logger.createSession();
+
   try {
+    // Log feedback creation start
+    await logger.logProcessing(sessionId, userId, "feedback_creation_start", {
+      interviewId,
+      feedbackId,
+      transcriptLength: transcript.length,
+    });
+
     const formattedTranscript = transcript
       .map(
         (sentence: { role: string; content: string }) =>
           `- ${sentence.role}: ${sentence.content}\n`
       )
       .join("");
+
+    // Log AI analysis start
+    await logger.logProcessing(
+      sessionId,
+      userId,
+      "ai_feedback_analysis_start",
+      {
+        transcriptLength: formattedTranscript.length,
+      }
+    );
 
     const { object } = await generateObject({
       model: google("gemini-2.0-flash-001", {
@@ -38,6 +59,19 @@ export async function createFeedback(params: CreateFeedbackParams) {
         "You are a professional interviewer analyzing a mock interview. Your task is to evaluate the candidate based on structured categories",
     });
 
+    // Log successful AI analysis
+    await logger.logProcessing(
+      sessionId,
+      userId,
+      "ai_feedback_analysis_success",
+      {
+        totalScore: object.totalScore,
+        categoryScores: object.categoryScores,
+        strengthsCount: object.strengths?.length || 0,
+        improvementsCount: object.areasForImprovement?.length || 0,
+      }
+    );
+
     const feedback = {
       interviewId: interviewId,
       userId: userId,
@@ -48,20 +82,51 @@ export async function createFeedback(params: CreateFeedbackParams) {
       finalAssessment: object.finalAssessment,
       createdAt: new Date().toISOString(),
     };
-
     let feedbackRef;
 
     if (feedbackId) {
       feedbackRef = db.collection("feedback").doc(feedbackId);
+      await logger.logProcessing(
+        sessionId,
+        userId,
+        "updating_existing_feedback",
+        {
+          feedbackId,
+        }
+      );
     } else {
       feedbackRef = db.collection("feedback").doc();
+      await logger.logProcessing(sessionId, userId, "creating_new_feedback", {
+        newFeedbackId: feedbackRef.id,
+      });
     }
 
     await feedbackRef.set(feedback);
 
+    // Log successful feedback save
+    await logger.logProcessing(sessionId, userId, "feedback_save_success", {
+      feedbackId: feedbackRef.id,
+      interviewId,
+      totalScore: feedback.totalScore,
+    });
+
     return { success: true, feedbackId: feedbackRef.id };
   } catch (error) {
     console.error("Error saving feedback:", error);
+
+    // Log the error
+    await logger.logError(
+      sessionId,
+      userId,
+      error instanceof Error ? error.message : String(error),
+      {
+        action: "createFeedback",
+        interviewId,
+        feedbackId,
+        stack: error instanceof Error ? error.stack : undefined,
+      }
+    );
+
     return { success: false };
   }
 }
