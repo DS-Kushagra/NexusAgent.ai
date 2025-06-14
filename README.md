@@ -1,10 +1,5 @@
 # NexusAgent.ai 🤖
 
-[![Next.js](https://img.shields.io/badge/Next.js-15.3.3-000000?style=flat&logo=next.js)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat&logo=typescript)](https://www.typescriptlang.org/)
-[![Firebase](https://img.shields.io/badge/Firebase-11.9.0-FFCA28?style=flat&logo=firebase)](https://firebase.google.com/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat&logo=tailwindcss)](https://tailwindcss.com/)
-
 **Get Interview-Ready with AI-Powered Practice & Feedback**
 
 NexusAgent.ai is an intelligent interview preparation platform that provides realistic mock interviews using advanced AI technology. Practice with industry-standard questions, receive instant feedback, and improve your technical and behavioral interview skills.
@@ -50,19 +45,22 @@ NexusAgent.ai is an intelligent interview preparation platform that provides rea
 ## 🛠️ Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/your-username/nexusagent-ai.git
    cd nexusagent-ai
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Set up environment variables**
-   
+
    Create a `.env.local` file in the root directory:
+
    ```env
    # Firebase Configuration
    NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
@@ -85,6 +83,7 @@ NexusAgent.ai is an intelligent interview preparation platform that provides rea
    ```
 
 4. **Set up Firebase**
+
    - Create a new Firebase project
    - Enable Authentication and Firestore
    - Download the service account key
@@ -98,16 +97,17 @@ NexusAgent.ai is an intelligent interview preparation platform that provides rea
 ## 🚀 Getting Started
 
 1. **Start the development server**
+
    ```bash
    npm run dev
    ```
 
 2. **Open your browser**
-   
+
    Navigate to [http://localhost:3000](http://localhost:3000)
 
 3. **Create an account**
-   
+
    Sign up and start practicing interviews!
 
 ## 📝 Available Scripts
@@ -131,12 +131,14 @@ npm run lint     # Run ESLint for code quality
 ## 🔧 Configuration
 
 ### Firebase Setup
+
 1. Create a Firebase project
 2. Enable Authentication (Email/Password)
 3. Create a Firestore database
 4. Set up security rules for your collections
 
 ### Vapi AI Setup
+
 1. Sign up for Vapi AI
 2. Create voice agents for interviews
 3. Configure the interviewer prompts
@@ -144,11 +146,13 @@ npm run lint     # Run ESLint for code quality
 ## 📚 API Reference
 
 ### Interview Endpoints
+
 - `POST /api/interviews/create` - Create a new interview session
 - `GET /api/interviews/[id]` - Get interview details
 - `POST /api/interviews/[id]/feedback` - Submit interview feedback
 
 ### Vapi Integration
+
 - `POST /api/vapi/generate` - Generate Vapi AI assistant configuration
 
 ## 🤝 Contributing
@@ -174,6 +178,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 If you have any questions or need help, please:
+
 - Open an issue on GitHub
 - Join our community discussions
 - Check the documentation
