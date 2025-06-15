@@ -2,7 +2,7 @@
 
 **Get Interview-Ready with AI-Powered Practice & Feedback**
 
-🚀 **Live Platform**: [nexusagent-ai.vercel.app](https://nexus-agent.vercel.app/) - Try the deployed application now!
+🚀 **Live Platform**: [NexusAgent](https://nexus-agent.vercel.app/) - Try the deployed application now!
 
 NexusAgent.ai is an intelligent interview preparation platform that provides realistic mock interviews using advanced AI technology. Practice with industry-standard questions, receive instant feedback, and improve your technical and behavioral interview skills.
 
