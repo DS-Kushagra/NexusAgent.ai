@@ -11,14 +11,12 @@ import {
 } from "@/lib/actions/general.action";
 
 async function Home() {
-  const user = await getCurrentUser();
-
-  // Handle case where user is not authenticated
+  const user = await getCurrentUser(); // Handle case where user is not authenticated
   if (!user || !user.id) {
     // Redirect to sign-in or show guest view
-    const [allInterview] = await Promise.all([
-      getLatestInterviews({ userId: "" }), // Pass empty string instead of null
-    ]);
+    const allInterviews = await getLatestInterviews({
+      userId: "",
+    });
 
     return (
       <>
@@ -36,11 +34,11 @@ async function Home() {
                 Get Started
               </a>
             </div>
-            {allInterview && allInterview.length > 0 && (
+            {allInterviews && allInterviews.length > 0 && (
               <div>
                 <h2 className="text-2xl font-bold mb-6">Latest Interviews</h2>
                 <div className="interviews-section">
-                  {allInterview.slice(0, 6).map((interview) => (
+                  {allInterviews.slice(0, 6).map((interview) => (
                     <InterviewCard
                       key={interview.id}
                       interviewId={interview.id}

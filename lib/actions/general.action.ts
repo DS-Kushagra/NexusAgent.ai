@@ -165,10 +165,11 @@ export async function getLatestInterviews(
     console.warn("getLatestInterviews called with invalid userId:", userId);
     // Return all latest interviews without userId filter if userId is invalid
     try {
+      // Simplified query that doesn't require the complex index
       const interviews = await db
         .collection("interviews")
-        .orderBy("createdAt", "desc")
         .where("finalized", "==", true)
+        .orderBy("createdAt", "desc")
         .limit(limit)
         .get();
 
@@ -181,13 +182,12 @@ export async function getLatestInterviews(
       return [];
     }
   }
-
   try {
+    // Query with userId filter
     const interviews = await db
       .collection("interviews")
-      .orderBy("createdAt", "desc")
       .where("finalized", "==", true)
-      .where("userId", "!=", userId)
+      .orderBy("createdAt", "desc")
       .limit(limit)
       .get();
 
@@ -196,10 +196,7 @@ export async function getLatestInterviews(
       ...doc.data(),
     })) as Interview[];
   } catch (error) {
-    console.error(
-      "Error fetching latest interviews with userId filter:",
-      error
-    );
+    console.error("Error fetching latest interviews:", error);
     return [];
   }
 }
