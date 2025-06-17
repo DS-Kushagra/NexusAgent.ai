@@ -160,31 +160,72 @@ export async function getLatestInterviews(
 ): Promise<Interview[] | null> {
   const { userId, limit = 20 } = params;
 
-  const interviews = await db
-    .collection("interviews")
-    .orderBy("createdAt", "desc")
-    .where("finalized", "==", true)
-    .where("userId", "!=", userId)
-    .limit(limit)
-    .get();
+  // Validate userId before making the query
+  if (!userId || userId === "undefined" || userId.trim() === "") {
+    console.warn("getLatestInterviews called with invalid userId:", userId);
+    // Return all latest interviews without userId filter if userId is invalid
+    try {
+      const interviews = await db
+        .collection("interviews")
+        .orderBy("createdAt", "desc")
+        .where("finalized", "==", true)
+        .limit(limit)
+        .get();
 
-  return interviews.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Interview[];
+      return interviews.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Interview[];
+    } catch (error) {
+      console.error("Error fetching latest interviews:", error);
+      return [];
+    }
+  }
+
+  try {
+    const interviews = await db
+      .collection("interviews")
+      .orderBy("createdAt", "desc")
+      .where("finalized", "==", true)
+      .where("userId", "!=", userId)
+      .limit(limit)
+      .get();
+
+    return interviews.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Interview[];
+  } catch (error) {
+    console.error(
+      "Error fetching latest interviews with userId filter:",
+      error
+    );
+    return [];
+  }
 }
 
 export async function getInterviewsByUserId(
   userId: string
 ): Promise<Interview[] | null> {
-  const interviews = await db
-    .collection("interviews")
-    .where("userId", "==", userId)
-    .orderBy("createdAt", "desc")
-    .get();
+  // Validate userId before making the query
+  if (!userId || userId === "undefined" || userId.trim() === "") {
+    console.warn("getInterviewsByUserId called with invalid userId:", userId);
+    return [];
+  }
 
-  return interviews.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Interview[];
+  try {
+    const interviews = await db
+      .collection("interviews")
+      .where("userId", "==", userId)
+      .orderBy("createdAt", "desc")
+      .get();
+
+    return interviews.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Interview[];
+  } catch (error) {
+    console.error("Error fetching interviews by userId:", error);
+    return [];
+  }
 }

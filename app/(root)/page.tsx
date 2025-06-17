@@ -13,13 +13,60 @@ import {
 async function Home() {
   const user = await getCurrentUser();
 
+  // Handle case where user is not authenticated
+  if (!user || !user.id) {
+    // Redirect to sign-in or show guest view
+    const [allInterview] = await Promise.all([
+      getLatestInterviews({ userId: "" }), // Pass empty string instead of null
+    ]);
+
+    return (
+      <>
+        <div className="root-layout">
+          <div className="flex flex-col gap-12">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold mb-4">Welcome to NexusAgent</h1>
+              <p className="text-gray-400 mb-8">
+                Sign in to start practicing interviews with AI
+              </p>
+              <a
+                href="/sign-in"
+                className="inline-block bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 px-6 rounded-xl transition-colors"
+              >
+                Get Started
+              </a>
+            </div>
+            {allInterview && allInterview.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-bold mb-6">Latest Interviews</h2>
+                <div className="interviews-section">
+                  {allInterview.slice(0, 6).map((interview) => (
+                    <InterviewCard
+                      key={interview.id}
+                      interviewId={interview.id}
+                      userId={user?.id || ""}
+                      role={interview.role}
+                      type={interview.type}
+                      techstack={interview.techstack}
+                      createdAt={interview.createdAt}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </>
+    );
+  }
+
   const [userInterviews, allInterview] = await Promise.all([
-    getInterviewsByUserId(user?.id!),
-    getLatestInterviews({ userId: user?.id! }),
+    getInterviewsByUserId(user.id),
+    getLatestInterviews({ userId: user.id }),
   ]);
 
-  const hasPastInterviews = userInterviews?.length! > 0;
-  const hasUpcomingInterviews = allInterview?.length! > 0;
+  const hasPastInterviews = userInterviews && userInterviews.length > 0;
+  const hasUpcomingInterviews = allInterview && allInterview.length > 0;
 
   return (
     <>
