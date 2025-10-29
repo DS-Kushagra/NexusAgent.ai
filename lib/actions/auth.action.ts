@@ -2,6 +2,7 @@
 
 import { auth, db } from "@/firebase/admin";
 import { cookies } from "next/headers";
+import { initializeUserPreferences } from "./schedule.action";
 
 // Session duration (1 week)
 const SESSION_DURATION = 60 * 60 * 24 * 7;
@@ -43,6 +44,11 @@ export async function signUp(params: SignUpParams) {
       email,
       // profileURL,
       // resumeURL,
+    });
+
+    // Initialize user preferences for automation features
+    await initializeUserPreferences(uid).catch((error) => {
+      console.error("Error initializing user preferences:", error);
     });
 
     return {
@@ -130,6 +136,3 @@ export async function isAuthenticated() {
   const user = await getCurrentUser();
   return !!user;
 }
-
-
-

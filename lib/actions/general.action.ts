@@ -6,6 +6,8 @@ import { google } from "@ai-sdk/google";
 import { db } from "@/firebase/admin";
 import { feedbackSchema } from "@/constants";
 import { logger } from "@/lib/logger";
+import { updateStreak } from "./streak.action";
+import { sendFeedbackReady } from "@/lib/email-service";
 
 export async function createFeedback(params: CreateFeedbackParams) {
   const { interviewId, userId, transcript, feedbackId } = params;
@@ -109,6 +111,35 @@ export async function createFeedback(params: CreateFeedbackParams) {
       interviewId,
       totalScore: feedback.totalScore,
     });
+
+    // Update user streak (run async, don't wait)
+    updateStreak(userId).catch((error) => {
+      console.error("Error updating streak:", error);
+    });
+
+    // Send feedback ready email (run async, don't wait)
+    getInterviewById(interviewId)
+      .then(async (interview) => {
+        if (!interview) return;
+
+        const userDoc = await db.collection("users").doc(userId).get();
+        const user = userDoc.data() as User;
+
+        if (user?.email) {
+          sendFeedbackReady({
+            to: user.email,
+            userName: user.name,
+            role: interview.role,
+            totalScore: feedback.totalScore,
+            interviewId,
+          }).catch((error) => {
+            console.error("Error sending feedback email:", error);
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching interview for email:", error);
+      });
 
     return { success: true, feedbackId: feedbackRef.id };
   } catch (error) {

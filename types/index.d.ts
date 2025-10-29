@@ -97,3 +97,77 @@ interface InterviewFormProps {
 interface TechIconProps {
   techStack: string[];
 }
+
+// Automation Features Types
+
+interface ScheduledInterview {
+  id: string;
+  userId: string;
+  role: string;
+  level: string;
+  type: string;
+  techstack: string[];
+  scheduledTime: string;
+  reminderSent: boolean;
+  status: "scheduled" | "completed" | "cancelled";
+  createdAt: string;
+  interviewId?: string;
+}
+
+interface UserStreak {
+  id: string;
+  userId: string;
+  currentStreak: number;
+  longestStreak: number;
+  lastInterviewDate: string;
+  totalInterviews: number;
+  lastReminderSent?: string;
+  updatedAt: string;
+}
+
+interface UserPreferences {
+  id: string;
+  userId: string;
+  emailNotifications: boolean;
+  weeklyReports: boolean;
+  streakReminders: boolean;
+  interviewSuggestions: boolean;
+  preferredInterviewTime?: string;
+  preferredDays?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface WeeklyReportData {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  weekStart: string;
+  weekEnd: string;
+  totalInterviews: number;
+  averageScore: number;
+  bestPerformance: string;
+  currentStreak: number;
+  suggestions: string[];
+  interviews: Array<{
+    role: string;
+    type: string;
+    score: number;
+    date: string;
+  }>;
+  categoryAverages: Array<{
+    name: string;
+    average: number;
+  }>;
+  topStrengths: string[];
+  commonImprovements: string[];
+}
+
+interface InterviewSuggestion {
+  role: string;
+  level: string;
+  type: string;
+  techStack: string[];
+  reason: string;
+  priority: number;
+}

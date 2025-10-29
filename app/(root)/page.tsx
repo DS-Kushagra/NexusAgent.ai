@@ -3,6 +3,8 @@ import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import InterviewCard from "@/components/InterviewCard";
+import StreakDisplay from "@/components/StreakDisplay";
+import SuggestionsCarousel from "@/components/SuggestionsCarousel";
 
 import { getCurrentUser } from "@/lib/actions/auth.action";
 import {
@@ -87,6 +89,12 @@ async function Home() {
           height={400}
           className="max-sm:hidden"
         />
+      </section>
+
+      {/* Dashboard Widgets */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+        <StreakDisplay />
+        <SuggestionsCarousel />
       </section>
 
       <section className="flex flex-col gap-6 mt-8">

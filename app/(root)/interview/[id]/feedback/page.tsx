@@ -101,6 +101,18 @@ const Feedback = async ({ params }: RouteParams) => {
           </Link>
         </Button>
 
+        <Button className="btn-secondary flex-1">
+          <Link
+            href={`/api/automation/download-pdf?interviewId=${id}`}
+            className="flex w-full justify-center"
+            target="_blank"
+          >
+            <p className="text-sm font-semibold text-primary-200 text-center">
+              📄 Download PDF Report
+            </p>
+          </Link>
+        </Button>
+
         <Button className="btn-primary flex-1">
           <Link
             href={`/interview/${id}`}
