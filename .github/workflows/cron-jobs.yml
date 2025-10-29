@@ -1,0 +1,180 @@
+name: Automated Cron Jobs
+
+on:
+  schedule:
+    # Daily streak check - Every day at 9:00 AM UTC
+    - cron: "0 9 * * *"
+    # Interview reminders - Every 6 hours
+    - cron: "0 */6 * * *"
+    # Weekly reports - Every Monday at 10:00 AM UTC
+    - cron: "0 10 * * 1"
+    # Weekly suggestions - Every Wednesday at 3:00 PM UTC
+    - cron: "0 15 * * 3"
+
+  # Allow manual triggering from GitHub UI
+  workflow_dispatch:
+    inputs:
+      job_type:
+        description: "Which cron job to run"
+        required: true
+        type: choice
+        options:
+          - daily-streak
+          - interview-reminders
+          - weekly-reports
+          - weekly-suggestions
+          - all
+
+jobs:
+  determine-jobs:
+    runs-on: ubuntu-latest
+    outputs:
+      run_daily_streak: ${{ steps.check.outputs.run_daily_streak }}
+      run_reminders: ${{ steps.check.outputs.run_reminders }}
+      run_weekly_reports: ${{ steps.check.outputs.run_weekly_reports }}
+      run_weekly_suggestions: ${{ steps.check.outputs.run_weekly_suggestions }}
+    steps:
+      - name: Determine which jobs to run
+        id: check
+        run: |
+          HOUR=$(date -u +%H)
+          DAY=$(date -u +%u)
+
+          # Default all to false
+          echo "run_daily_streak=false" >> $GITHUB_OUTPUT
+          echo "run_reminders=false" >> $GITHUB_OUTPUT
+          echo "run_weekly_reports=false" >> $GITHUB_OUTPUT
+          echo "run_weekly_suggestions=false" >> $GITHUB_OUTPUT
+
+          # Manual trigger
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            case "${{ github.event.inputs.job_type }}" in
+              "daily-streak")
+                echo "run_daily_streak=true" >> $GITHUB_OUTPUT
+                ;;
+              "interview-reminders")
+                echo "run_reminders=true" >> $GITHUB_OUTPUT
+                ;;
+              "weekly-reports")
+                echo "run_weekly_reports=true" >> $GITHUB_OUTPUT
+                ;;
+              "weekly-suggestions")
+                echo "run_weekly_suggestions=true" >> $GITHUB_OUTPUT
+                ;;
+              "all")
+                echo "run_daily_streak=true" >> $GITHUB_OUTPUT
+                echo "run_reminders=true" >> $GITHUB_OUTPUT
+                echo "run_weekly_reports=true" >> $GITHUB_OUTPUT
+                echo "run_weekly_suggestions=true" >> $GITHUB_OUTPUT
+                ;;
+            esac
+          else
+            # Scheduled triggers
+            # Daily streak at 9 AM
+            if [ "$HOUR" == "09" ]; then
+              echo "run_daily_streak=true" >> $GITHUB_OUTPUT
+            fi
+            
+            # Interview reminders every 6 hours (0, 6, 12, 18)
+            if [ $((HOUR % 6)) -eq 0 ]; then
+              echo "run_reminders=true" >> $GITHUB_OUTPUT
+            fi
+            
+            # Weekly reports on Monday at 10 AM
+            if [ "$DAY" == "1" ] && [ "$HOUR" == "10" ]; then
+              echo "run_weekly_reports=true" >> $GITHUB_OUTPUT
+            fi
+            
+            # Weekly suggestions on Wednesday at 3 PM
+            if [ "$DAY" == "3" ] && [ "$HOUR" == "15" ]; then
+              echo "run_weekly_suggestions=true" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+  daily-streak:
+    needs: determine-jobs
+    if: needs.determine-jobs.outputs.run_daily_streak == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Daily Streak Check
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X GET \
+            ${{ secrets.APP_URL }}/api/cron/daily-streak \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+
+          echo "Response: $body"
+          echo "HTTP Status: $http_code"
+
+          if [ "$http_code" != "200" ]; then
+            echo "Error: Daily streak check failed with status $http_code"
+            exit 1
+          fi
+
+  interview-reminders:
+    needs: determine-jobs
+    if: needs.determine-jobs.outputs.run_reminders == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Interview Reminders
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X GET \
+            ${{ secrets.APP_URL }}/api/cron/interview-reminders \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+
+          echo "Response: $body"
+          echo "HTTP Status: $http_code"
+
+          if [ "$http_code" != "200" ]; then
+            echo "Error: Interview reminders failed with status $http_code"
+            exit 1
+          fi
+
+  weekly-reports:
+    needs: determine-jobs
+    if: needs.determine-jobs.outputs.run_weekly_reports == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Weekly Reports
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X GET \
+            ${{ secrets.APP_URL }}/api/cron/weekly-reports \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+
+          echo "Response: $body"
+          echo "HTTP Status: $http_code"
+
+          if [ "$http_code" != "200" ]; then
+            echo "Error: Weekly reports failed with status $http_code"
+            exit 1
+          fi
+
+  weekly-suggestions:
+    needs: determine-jobs
+    if: needs.determine-jobs.outputs.run_weekly_suggestions == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Weekly Suggestions
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X GET \
+            ${{ secrets.APP_URL }}/api/cron/weekly-suggestions \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+
+          echo "Response: $body"
+          echo "HTTP Status: $http_code"
+
+          if [ "$http_code" != "200" ]; then
+            echo "Error: Weekly suggestions failed with status $http_code"
+            exit 1
+          fi
