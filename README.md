@@ -1,31 +1,14 @@
 ﻿<div align="center">
 
-#  NexusAgent.ai
+#  NexusAgent.ai 
 
-### AI-Powered Interview Preparation Platform
+### ⋆ AI-Powered Interview Preparation Platform
 
 **Master Your Next Interview with Intelligent Practice & Real-Time Feedback**
 
-[ Live Platform](https://nexus-agent.vercel.app/) •  [ Report Bug](https://github.com/DS-Kushagra/NexusAgent.ai/issues) • [ Request Feature](https://github.com/DS-Kushagra/NexusAgent.ai/issues)
+✦ [ Live Platform](https://nexus-agent.vercel.app/) ✦  [ Report Bug](https://github.com/DS-Kushagra/NexusAgent.ai/issues) ✦ [ Request Feature](https://github.com/DS-Kushagra/NexusAgent.ai/issues)
 
 </div>
-
----
-
-## 📋 Table of Contents
-
-- [Overview](#-overview)
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Quick Start](#-quick-start)
-- [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Automation System](#-automation-system)
-- [API Reference](#-api-reference)
-- [Project Structure](#-project-structure)
-- [Deployment](#-deployment)
-- [Contributing](#-contributing)
-- [License](#-license)
 
 ---
 
@@ -1140,7 +1123,6 @@ See [LICENSE](LICENSE) for full details.
 
 ### Get Help
 
-- 📖 **Documentation**: Start with [AUTOMATION_SETUP.md](AUTOMATION_SETUP.md)
 - 🐛 **Bug Reports**: [GitHub Issues](https://github.com/DS-Kushagra/NexusAgent.ai/issues)
 - 💡 **Feature Requests**: [GitHub Issues](https://github.com/DS-Kushagra/NexusAgent.ai/issues)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/DS-Kushagra/NexusAgent.ai/discussions)
