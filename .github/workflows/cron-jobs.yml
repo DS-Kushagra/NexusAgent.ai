@@ -37,8 +37,13 @@ jobs:
       - name: Determine which jobs to run
         id: check
         run: |
-          HOUR=$(date -u +%H | sed 's/^0*//')
-          DAY=$(date -u +%u)
+          # Get raw hour and day (UTC)
+          HOUR_RAW=$(date -u +%H)   # e.g. "09", "00", "18"
+          DAY_RAW=$(date -u +%u)    # 1..7
+
+          # Force numeric base-10 interpretation to avoid octal errors
+          HOUR_NUM=$((10#$HOUR_RAW))
+          DAY_NUM=$((10#$DAY_RAW))
 
           # Default all to false
           echo "run_daily_streak=false" >> $GITHUB_OUTPUT
@@ -47,7 +52,7 @@ jobs:
           echo "run_weekly_suggestions=false" >> $GITHUB_OUTPUT
 
           # Manual trigger
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             case "${{ github.event.inputs.job_type }}" in
               "daily-streak")
                 echo "run_daily_streak=true" >> $GITHUB_OUTPUT
@@ -69,24 +74,24 @@ jobs:
                 ;;
             esac
           else
-            # Scheduled triggers
+            # Scheduled triggers (use numeric comparisons on HOUR_NUM and DAY_NUM)
             # Daily streak at 9 AM
-            if [ "$HOUR" == "9" ]; then
+            if [ "$HOUR_NUM" -eq 9 ]; then
               echo "run_daily_streak=true" >> $GITHUB_OUTPUT
             fi
-            
+
             # Interview reminders every 6 hours (0, 6, 12, 18)
-            if [ $((HOUR % 6)) -eq 0 ]; then
+            if [ $((HOUR_NUM % 6)) -eq 0 ]; then
               echo "run_reminders=true" >> $GITHUB_OUTPUT
             fi
-            
+
             # Weekly reports on Monday at 10 AM
-            if [ "$DAY" == "1" ] && [ "$HOUR" == "10" ]; then
+            if [ "$DAY_NUM" -eq 1 ] && [ "$HOUR_NUM" -eq 10 ]; then
               echo "run_weekly_reports=true" >> $GITHUB_OUTPUT
             fi
-            
+
             # Weekly suggestions on Wednesday at 3 PM
-            if [ "$DAY" == "3" ] && [ "$HOUR" == "15" ]; then
+            if [ "$DAY_NUM" -eq 3 ] && [ "$HOUR_NUM" -eq 15 ]; then
               echo "run_weekly_suggestions=true" >> $GITHUB_OUTPUT
             fi
           fi
