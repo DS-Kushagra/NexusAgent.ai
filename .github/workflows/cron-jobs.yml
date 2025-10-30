@@ -76,7 +76,7 @@ jobs:
             fi
             
             # Interview reminders every 6 hours (0, 6, 12, 18)
-            if [ $((HOUR % 6)) -eq 0 ]; then
+            if [ $((10#$HOUR % 6)) -eq 0 ]; then
               echo "run_reminders=true" >> $GITHUB_OUTPUT
             fi
             
