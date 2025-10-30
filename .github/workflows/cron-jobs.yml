@@ -37,7 +37,7 @@ jobs:
       - name: Determine which jobs to run
         id: check
         run: |
-          HOUR=$(date -u +%-H)
+          HOUR=$(date -u +%H | sed 's/^0*//')
           DAY=$(date -u +%u)
 
           # Default all to false
