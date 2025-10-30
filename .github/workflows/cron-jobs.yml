@@ -37,7 +37,7 @@ jobs:
       - name: Determine which jobs to run
         id: check
         run: |
-          HOUR=$(date -u +%H)
+          HOUR=$(date -u +%-H)
           DAY=$(date -u +%u)
 
           # Default all to false
@@ -71,12 +71,12 @@ jobs:
           else
             # Scheduled triggers
             # Daily streak at 9 AM
-            if [ "$HOUR" == "09" ]; then
+            if [ "$HOUR" == "9" ]; then
               echo "run_daily_streak=true" >> $GITHUB_OUTPUT
             fi
             
             # Interview reminders every 6 hours (0, 6, 12, 18)
-            if [ $((10#$HOUR % 6)) -eq 0 ]; then
+            if [ $((HOUR % 6)) -eq 0 ]; then
               echo "run_reminders=true" >> $GITHUB_OUTPUT
             fi
             
