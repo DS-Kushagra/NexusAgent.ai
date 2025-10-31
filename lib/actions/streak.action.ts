@@ -137,10 +137,9 @@ export async function checkAndNotifyStreaks(): Promise<{
     const yesterday = dayjs().subtract(1, "day").format("YYYY-MM-DD");
     const twoDaysAgo = dayjs().subtract(2, "days").format("YYYY-MM-DD");
 
-    // Get users who last practiced yesterday (at risk of losing streak)
+    // Get ALL users with active streaks (we'll filter by date below)
     const streaksSnapshot = await db
       .collection("user_streaks")
-      .where("lastInterviewDate", "==", yesterday)
       .where("currentStreak", ">", 0)
       .get();
 
@@ -152,6 +151,18 @@ export async function checkAndNotifyStreaks(): Promise<{
       const streak = doc.data() as UserStreak;
 
       try {
+        // Calculate days inactive
+        const daysInactive = dayjs().diff(
+          dayjs(streak.lastInterviewDate),
+          "days"
+        );
+
+        // Only send reminders for users inactive 1 day (at risk)
+        // Streak breaks after 2 days, so we want to remind before that
+        if (daysInactive !== 1) {
+          continue;
+        }
+
         // Check if reminder was already sent today
         if (
           streak.lastReminderSent &&
@@ -175,15 +186,10 @@ export async function checkAndNotifyStreaks(): Promise<{
           .get();
         const prefs = prefsDoc.data() as UserPreferences | undefined;
 
+        // Default to TRUE if preferences don't exist (opt-out, not opt-in)
         if (prefs?.streakReminders === false) {
           continue;
         }
-
-        // Calculate days inactive
-        const daysInactive = dayjs().diff(
-          dayjs(streak.lastInterviewDate),
-          "days"
-        );
 
         // Send streak reminder
         const emailResult = await sendStreakReminder({
@@ -225,17 +231,24 @@ export async function checkAndNotifyStreaks(): Promise<{
       }
     }
 
-    // Also check for users who practiced 2 days ago (streak will break today)
-    const urgentStreaksSnapshot = await db
-      .collection("user_streaks")
-      .where("lastInterviewDate", "==", twoDaysAgo)
-      .where("currentStreak", ">", 2)
-      .get();
-
-    for (const doc of urgentStreaksSnapshot.docs) {
+    // Also check for users who are about to lose their streak TODAY (2 days inactive)
+    // These get urgent "Last Chance!" emails
+    for (const doc of streaksSnapshot.docs) {
       const streak = doc.data() as UserStreak;
 
       try {
+        // Calculate days inactive
+        const daysInactive = dayjs().diff(
+          dayjs(streak.lastInterviewDate),
+          "days"
+        );
+
+        // Only send urgent reminders for users inactive exactly 2 days (last chance!)
+        // Also require streak to be at least 3 days (worth saving)
+        if (daysInactive !== 2 || streak.currentStreak < 3) {
+          continue;
+        }
+
         // Check if reminder was already sent today
         if (
           streak.lastReminderSent &&
@@ -257,14 +270,10 @@ export async function checkAndNotifyStreaks(): Promise<{
           .get();
         const prefs = prefsDoc.data() as UserPreferences | undefined;
 
+        // Default to TRUE if preferences don't exist
         if (prefs?.streakReminders === false) {
           continue;
         }
-
-        const daysInactive = dayjs().diff(
-          dayjs(streak.lastInterviewDate),
-          "days"
-        );
 
         const emailResult = await sendStreakReminder({
           to: user.email,
