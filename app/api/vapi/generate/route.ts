@@ -6,7 +6,41 @@ import { getRandomInterviewCover } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 
 export async function POST(request: Request) {
-  const { type, role, level, techstack, amount, userid } = await request.json();
+  const body = await request.json();
+
+  // Vapi sends tool calls wrapped in a message envelope. Anything else (direct
+  // POSTs, tests) is treated as a plain body so this route stays usable on its own.
+  const toolCall = body?.message?.toolCalls?.[0];
+  const args = toolCall
+    ? typeof toolCall.function?.arguments === "string"
+      ? JSON.parse(toolCall.function.arguments)
+      : toolCall.function?.arguments ?? {}
+    : body;
+
+  const { type, role, level, techstack, amount } = args;
+
+  // Prefer the variableValues we set when starting the call: those are ours.
+  // Only fall back to the model-supplied value if the envelope is missing it.
+  const userid =
+    body?.message?.call?.assistantOverrides?.variableValues?.userid ??
+    args.userid;
+
+  const respond = (payload: Record<string, unknown>, status: number) =>
+    toolCall
+      ? Response.json(
+          {
+            results: [
+              {
+                toolCallId: toolCall.id,
+                result: payload.success
+                  ? "The interview has been created successfully."
+                  : "Sorry, the interview could not be created.",
+              },
+            ],
+          },
+          { status: 200 }
+        )
+      : Response.json(payload, { status });
 
   // Create session for logging
   const sessionId = logger.createSession();
@@ -34,7 +68,7 @@ export async function POST(request: Request) {
     });
 
     const { text: questions } = await generateText({
-      model: google("gemini-2.0-flash-001"),
+      model: google("gemini-3.6-flash"),
       prompt: `Prepare questions for a job interview.
         The job role is ${role}.
         The job experience level is ${level}.
@@ -106,7 +140,7 @@ export async function POST(request: Request) {
       { success: true }
     );
 
-    return Response.json({ success: true }, { status: 200 });
+    return respond({ success: true }, 200);
   } catch (error) {
     console.error("Error:", error);
 
@@ -138,7 +172,7 @@ export async function POST(request: Request) {
       { success: false, error: error }
     );
 
-    return Response.json({ success: false, error: error }, { status: 500 });
+    return respond({ success: false, error: String(error) }, 500);
   }
 }
 

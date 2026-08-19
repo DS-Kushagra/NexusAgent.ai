@@ -1,4 +1,4 @@
-import { writeFile, appendFile, readFile } from "fs/promises";
+import { writeFile, readFile, rename } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
 
@@ -23,6 +23,9 @@ export interface LogEntry {
 class Logger {
   private logDir: string;
   private currentDate: string;
+  // Serialises writes: each call chains onto the previous one, so two concurrent
+  // requests can never read-modify-write the same file at the same time.
+  private writeQueue: Promise<void> = Promise.resolve();
 
   constructor() {
     this.logDir = path.join(process.cwd(), "logs");
@@ -38,12 +41,17 @@ class Logger {
   }
 
   async logEntry(entry: Omit<LogEntry, "timestamp">): Promise<void> {
-    try {
-      const logEntry: LogEntry = {
-        ...entry,
-        timestamp: new Date().toISOString(),
-      };
+    const logEntry: LogEntry = {
+      ...entry,
+      timestamp: new Date().toISOString(),
+    };
 
+    this.writeQueue = this.writeQueue.then(() => this.appendEntry(logEntry));
+    return this.writeQueue;
+  }
+
+  private async appendEntry(logEntry: LogEntry): Promise<void> {
+    try {
       const logFilePath = this.getLogFilePath();
 
       let logs: LogEntry[] = [];
@@ -54,7 +62,14 @@ class Logger {
           const fileContent = await readFile(logFilePath, "utf-8");
           logs = JSON.parse(fileContent);
         } catch (error) {
+          // Do not silently reset to []: writing that back would replace the
+          // whole day of history with this single entry. Keep the unreadable
+          // file for inspection and start a new one instead.
           console.error("Error reading log file:", error);
+          await rename(
+            logFilePath,
+            `${logFilePath}.corrupt-${Date.now()}`
+          ).catch(() => {});
           logs = [];
         }
       }
@@ -62,8 +77,11 @@ class Logger {
       // Add new log entry
       logs.push(logEntry);
 
-      // Write back to file
-      await writeFile(logFilePath, JSON.stringify(logs, null, 2), "utf-8");
+      // Write to a temp file and rename into place: rename is atomic, so a
+      // reader never observes a partially written file.
+      const tmpPath = `${logFilePath}.tmp`;
+      await writeFile(tmpPath, JSON.stringify(logs, null, 2), "utf-8");
+      await rename(tmpPath, logFilePath);
     } catch (error) {
       console.error("Failed to write log:", error);
     }
