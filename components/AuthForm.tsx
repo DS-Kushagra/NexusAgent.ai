@@ -1,6 +1,7 @@
 "use client";
 
 import { z } from "zod";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -8,6 +9,7 @@ import { auth } from "@/firebase/client";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowRight, Loader2, UserPlus } from "lucide-react";
 
 import {
   createUserWithEmailAndPassword,
@@ -22,10 +24,40 @@ import FormField from "./FormField";
 
 const authFormSchema = (type: FormType) => {
   return z.object({
-    name: type === "sign-up" ? z.string().min(3) : z.string().optional(),
-    email: z.string().email(),
-    password: z.string().min(3),
+    name:
+      type === "sign-up"
+        ? z.string().min(3, "Please enter at least 3 characters.")
+        : z.string().optional(),
+    email: z.string().email("Enter a valid email address."),
+    // Firebase itself rejects anything under 6 characters, so validating at 3
+    // only pushed the failure to the server and surfaced it as a raw error.
+    password: z.string().min(6, "Password must be at least 6 characters."),
   });
+};
+
+// Firebase error codes are not something to show a person as-is.
+const friendlyError = (error: unknown): string => {
+  const code =
+    typeof error === "object" && error !== null && "code" in error
+      ? String((error as { code: unknown }).code)
+      : "";
+
+  switch (code) {
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+    case "auth/user-not-found":
+      return "That email or password is incorrect.";
+    case "auth/email-already-in-use":
+      return "An account with that email already exists.";
+    case "auth/weak-password":
+      return "Please choose a stronger password.";
+    case "auth/too-many-requests":
+      return "Too many attempts. Please wait a moment and try again.";
+    case "auth/network-request-failed":
+      return "Network problem. Check your connection and try again.";
+    default:
+      return "Something went wrong. Please try again.";
+  }
 };
 
 const AuthForm = ({ type }: { type: FormType }) => {
@@ -41,7 +73,15 @@ const AuthForm = ({ type }: { type: FormType }) => {
     },
   });
 
+  const isSignIn = type === "sign-in";
+  // Deliberately not form.formState.isSubmitting: that clears as soon as
+  // onSubmit returns, which happens while router.push is still navigating -
+  // so the spinner would disappear exactly during the longest wait.
+  const [isPending, setIsPending] = useState(false);
+
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    setIsPending(true);
+
     try {
       if (type === "sign-up") {
         const { name, email, password } = data;
@@ -61,6 +101,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
 
         if (!result.success) {
           toast.error(result.message);
+          setIsPending(false);
           return;
         }
 
@@ -77,81 +118,55 @@ const AuthForm = ({ type }: { type: FormType }) => {
 
         const idToken = await userCredential.user.getIdToken();
         if (!idToken) {
-          toast.error("Sign in Failed. Please try again.");
+          toast.error("Sign in failed. Please try again.");
+          setIsPending(false);
           return;
         }
 
-        await signIn({
-          email,
-          idToken,
-        });
+        await signIn({ email, idToken });
 
         toast.success("Signed in successfully.");
         router.push("/");
       }
     } catch (error) {
-      console.log(error);
-      toast.error(`There was an error: ${error}`);
+      console.error(error);
+      toast.error(friendlyError(error));
+      setIsPending(false);
     }
+    // On success the loader stays up: this component unmounts on navigation.
   };
 
-  const isSignIn = type === "sign-in";
   return (
-    <div className="auth-form-container backdrop-blur-lg bg-dark-100/40 border border-gray-800/50 rounded-2xl shadow-2xl lg:min-w-[500px] animate-form-appear hover:shadow-primary-200/10 transition-all duration-500">
-      <div className="flex flex-col gap-7 p-8 relative overflow-hidden">
-        {/* Decorative elements */}
-        <div
-          className="absolute top-0 right-0 w-40 h-40 bg-primary-200/10 rounded-full blur-3xl -mr-20 -mt-20 animate-pulse"
-          style={{ animationDuration: "7s" }}
-        ></div>
-        <div
-          className="absolute bottom-0 left-0 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl -ml-20 -mb-20 animate-pulse"
-          style={{ animationDuration: "10s" }}
-        ></div>
+    <div className="auth-form-container animate-form-appear lg:min-w-[460px]">
+      {/* A single hairline highlight along the top edge, in place of the four
+          pulsing blur orbs and particle dots that used to sit here. */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-200/40 to-transparent" />
 
-        {/* Interactive particle elements */}
-        <div className="absolute top-1/4 right-10 w-1.5 h-1.5 bg-primary-200/40 rounded-full animate-float"></div>
-        <div
-          className="absolute bottom-1/3 left-12 w-1 h-1 bg-blue-400/30 rounded-full animate-float"
-          style={{ animationDelay: "2s" }}
-        ></div>
-        <div
-          className="absolute top-3/4 right-16 w-2 h-2 bg-primary-200/20 rounded-full animate-float"
-          style={{ animationDelay: "3s" }}
-        ></div>
-
-        {/* Logo with enhanced effect */}
-        <div
-          className="flex items-center justify-center gap-3 mb-2 animate-slide-down"
-          style={{ animationDelay: "0.2s" }}
-        >
-          <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary-200/30 to-blue-500/30 blur-lg rounded-full group-hover:blur-xl transition-all duration-700"></div>
-            <Image
-              src="/logo.svg"
-              alt="logo"
-              height={36}
-              width={42}
-              className="relative z-10 group-hover:scale-110 transition-transform duration-500"
-            />
+      <div className="flex flex-col gap-6 p-8">
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <Image src="/logo.svg" alt="" height={32} width={38} />
+            <span className="text-2xl font-bold tracking-tight text-white">
+              NexusAgent
+            </span>
           </div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-primary-200 bg-clip-text text-transparent animate-gradient-x">
-            NexusAgent
-          </h2>
-        </div>
 
-        <h3
-          className="text-center text-white text-xl font-medium mb-2 animate-slide-down"
-          style={{ animationDelay: "0.3s" }}
-        >
-          Practice job interviews with AI
-        </h3>
+          <div className="text-center">
+            <h1 className="text-xl font-semibold text-white">
+              {isSignIn ? "Welcome back" : "Create your account"}
+            </h1>
+            <p className="mt-1 text-sm text-light-100/70">
+              {isSignIn
+                ? "Sign in to continue practising."
+                : "Start practising interviews with AI."}
+            </p>
+          </div>
+        </div>
 
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="w-full space-y-5 mt-2 animate-slide-up"
-            style={{ animationDelay: "0.4s" }}
+            className="flex w-full flex-col gap-5"
           >
             {!isSignIn && (
               <FormField
@@ -160,76 +175,63 @@ const AuthForm = ({ type }: { type: FormType }) => {
                 label="Name"
                 placeholder="Your full name"
                 type="text"
+                autoComplete="name"
               />
             )}
+
             <FormField
               control={form.control}
               name="email"
               label="Email"
-              placeholder="Your email address"
+              placeholder="you@example.com"
               type="email"
+              autoComplete="email"
             />
+
             <FormField
               control={form.control}
               name="password"
               label="Password"
-              placeholder="Enter your password"
+              placeholder={
+                isSignIn ? "Enter your password" : "At least 6 characters"
+              }
               type="password"
+              autoComplete={isSignIn ? "current-password" : "new-password"}
             />
+
             {isSignIn && (
-              <div className="text-right">
+              <div className="-mt-1 text-right">
                 <Link
                   href="/forgot-password"
-                  className="text-sm font-medium text-primary-200 hover:text-primary-100 transition-colors hover:underline"
+                  className="text-sm font-medium text-primary-200 transition-colors hover:text-primary-100 hover:underline"
                 >
                   Forgot your password?
                 </Link>
               </div>
-            )}{" "}
+            )}
+
             <Button
-              className="auth-button w-full mt-4 py-6 rounded-xl"
+              className="mt-1 w-full rounded-xl"
               type="submit"
               variant="premium"
               size="xl"
+              disabled={isPending}
             >
-              <span className="relative z-10 flex items-center gap-2">
-                {isSignIn ? (
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                {isPending ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    {isSignIn ? "Signing in..." : "Creating account..."}
+                  </>
+                ) : isSignIn ? (
                   <>
                     Sign In
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="ml-1"
-                    >
-                      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M13.8 12H3" />
-                    </svg>
+                    <ArrowRight className="size-4" />
                   </>
                 ) : (
                   <>
                     Create an Account
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="ml-1"
-                    >
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
+                    <UserPlus className="size-4" />
                   </>
                 )}
               </span>
@@ -237,19 +239,15 @@ const AuthForm = ({ type }: { type: FormType }) => {
           </form>
         </Form>
 
-        <div className="relative flex items-center py-2">
-          <div className="flex-grow border-t border-gray-700/50"></div>
-          <span className="flex-shrink mx-3 text-sm text-gray-400">or</span>
-          <div className="flex-grow border-t border-gray-700/50"></div>
-        </div>
+        <div className="h-px bg-light-800/60" />
 
-        <p className="text-center text-gray-300">
+        <p className="text-center text-sm text-light-100/70">
           {isSignIn ? "No account yet?" : "Have an account already?"}
           <Link
-            href={!isSignIn ? "/sign-in" : "/sign-up"}
-            className="font-bold text-primary-200 hover:text-primary-100 transition-colors ml-2 hover:underline"
+            href={isSignIn ? "/sign-up" : "/sign-in"}
+            className="ml-1.5 font-semibold text-primary-200 transition-colors hover:text-primary-100 hover:underline"
           >
-            {!isSignIn ? "Sign In" : "Sign Up"}
+            {isSignIn ? "Sign Up" : "Sign In"}
           </Link>
         </p>
       </div>
