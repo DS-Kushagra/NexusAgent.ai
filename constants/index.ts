@@ -155,6 +155,98 @@ End the conversation on a polite and positive note.
   },
 };
 
+export const generator: CreateAssistantDTO = {
+  name: "Generator",
+  firstMessage:
+    "Hey {{username}}! Let's get your interview set up. What role are you preparing for?",
+  transcriber: {
+    provider: "deepgram",
+    model: "nova-2",
+    language: "en",
+  },
+  voice: {
+    provider: "11labs",
+    voiceId: "sarah",
+    stability: 0.4,
+    similarityBoost: 0.8,
+    speed: 0.9,
+    style: 0.5,
+    useSpeakerBoost: true,
+  },
+  model: {
+    provider: "openai",
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "system",
+        content: `You are setting up a mock interview for {{username}}. Collect these five details, asking for ONE at a time and confirming briefly before moving on:
+
+1. The role they are interviewing for (e.g. Frontend Developer).
+2. Their experience level (junior, mid, or senior).
+3. The tech stack, as a comma separated list (e.g. React, Node, MongoDB).
+4. The interview type: behavioural, technical, or mixed.
+5. How many questions they want (a number between 3 and 20).
+
+Once you have all five, call the generate_interview function with them. After the function returns, tell them their interview is ready and that they can start it from their dashboard, then end the call politely.
+
+- This is a voice conversation, so keep every response short and natural. Do not ramble.
+- Do not read lists back verbatim or use special characters — you are being spoken aloud.
+- If an answer is unclear, ask one short follow-up rather than guessing.`,
+      },
+    ],
+    tools: [
+      {
+        type: "function",
+        async: false,
+        function: {
+          name: "generate_interview",
+          description:
+            "Generates and saves the interview questions once all details have been collected.",
+          parameters: {
+            type: "object",
+            properties: {
+              role: {
+                type: "string",
+                description: "The job role, e.g. Frontend Developer.",
+              },
+              level: {
+                type: "string",
+                description: "Experience level: junior, mid, or senior.",
+              },
+              techstack: {
+                type: "string",
+                description: "Comma separated tech stack, e.g. React, Node.",
+              },
+              type: {
+                type: "string",
+                description:
+                  "Interview focus: behavioural, technical, or mixed.",
+              },
+              amount: {
+                type: "number",
+                description: "How many questions to generate.",
+              },
+            },
+            required: ["role", "level", "techstack", "type", "amount"],
+          },
+        },
+        server: {
+          url: `${
+            process.env.NEXT_PUBLIC_APP_URL || "https://nexus-agent.vercel.app"
+          }/api/vapi/generate`,
+        },
+        messages: [
+          {
+            type: "request-start",
+            content:
+              "Great — give me a moment while I put your interview together.",
+          },
+        ],
+      },
+    ],
+  },
+};
+
 export const feedbackSchema = z.object({
   totalScore: z.number(),
   categoryScores: z.tuple([

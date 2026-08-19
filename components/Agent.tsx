@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { vapi } from "@/lib/vapi.sdk";
-import { interviewer } from "@/constants";
+import { generator, interviewer } from "@/constants";
 import { createFeedback } from "@/lib/actions/general.action";
 import { clientLogger } from "@/lib/client-logger";
 
@@ -193,22 +193,16 @@ const Agent = ({
     try {
       if (type === "generate") {
         clientLogger.logProcessing("starting_generate_workflow", {
-          workflowId: process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID,
+          assistant: "generator",
           variableValues: { username: userName, userid: userId },
         });
 
-        await vapi.start(
-          undefined,
-          undefined,
-          undefined,
-          process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!,
-          {
-            variableValues: {
-              username: userName,
-              userid: userId,
-            },
-          }
-        );
+        await vapi.start(generator, {
+          variableValues: {
+            username: userName,
+            userid: userId,
+          },
+        });
 
         clientLogger.logProcessing("generate_workflow_started", {
           success: true,

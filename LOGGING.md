@@ -152,7 +152,7 @@ When you see "Oops, Something went wrong":
 Ensure these are set for proper logging:
 
 - `NEXT_PUBLIC_VAPI_WEB_TOKEN` - For VAPI connection
-- `NEXT_PUBLIC_VAPI_WORKFLOW_ID` - For workflow execution
+- `NEXT_PUBLIC_APP_URL` - Public base URL Vapi calls back for the `generate_interview` tool
 
 ## Privacy Considerations
 
