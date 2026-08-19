@@ -22,7 +22,7 @@ export async function generateInterviewSuggestions(
       .get();
 
     const interviews = interviewsSnapshot.docs.map(
-      (doc) => doc.data() as Interview
+      (doc) => ({ id: doc.id, ...doc.data() } as Interview)
     );
 
     // Get feedback for these interviews
